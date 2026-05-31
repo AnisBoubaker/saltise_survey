@@ -220,6 +220,10 @@ a:focus-visible {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+.choice-grid.labeled {
+  grid-template-columns: 1fr;
+}
+
 .choice-grid label,
 .option-list label {
   min-height: 44px;
@@ -232,6 +236,11 @@ a:focus-visible {
   justify-content: center;
   gap: 0.45rem;
   text-align: center;
+}
+
+.choice-grid.labeled label {
+  justify-content: flex-start;
+  text-align: left;
 }
 
 .option-list {

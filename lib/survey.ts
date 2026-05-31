@@ -47,29 +47,34 @@ export const policyContexts = [
 
 export const demandScenarios = [
   {
-    id: "debugging",
-    title: "Debugging support",
-    prompt: "A learner asks GenAI to explain an error and suggest debugging steps for their own code."
+    id: "s1_full_solution_pre_attempt",
+    title: "S1",
+    prompt: "Students can ask ChatGPT for a full solution before attempting a programming assignment.",
+    expectedDemand: "Very high"
   },
   {
-    id: "full_solution",
-    title: "Full solution generation",
-    prompt: "A learner asks GenAI to generate a complete solution before attempting the task."
+    id: "s2_ide_integrated_assistant",
+    title: "S2",
+    prompt: "Students use an IDE-integrated assistant such as Copilot during a project.",
+    expectedDemand: "Moderate to high"
   },
   {
-    id: "test_design",
-    title: "Test design",
-    prompt: "A learner asks GenAI to propose tests for code they already wrote."
+    id: "s3_post_attempt_hints",
+    title: "S3",
+    prompt: "Students receive AI-generated hints only after they have made an initial attempt.",
+    expectedDemand: "Low to moderate"
   },
   {
-    id: "concept_explanation",
-    title: "Concept explanation",
-    prompt: "A learner asks GenAI to explain a programming concept using examples."
+    id: "s4_revision_feedback",
+    title: "S4",
+    prompt: "Students submit a draft of their code and receive AI-generated feedback for revision.",
+    expectedDemand: "Low to moderate"
   },
   {
-    id: "code_review",
-    title: "Code review",
-    prompt: "A learner asks GenAI to critique their code for readability, correctness, and maintainability."
+    id: "s5_critique_buggy_ai_code",
+    title: "S5",
+    prompt: "Students critique, test, and correct buggy AI-generated code.",
+    expectedDemand: "Low / structurally protective"
   }
 ];
 

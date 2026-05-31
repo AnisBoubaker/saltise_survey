@@ -267,10 +267,18 @@ function ActiveSection(props: {
     return (
       <section className="panel stack">
         <h1 className="page-title">Responsible-use demand</h1>
-        <p className="lede">Rate how much governance or instructional design attention each scenario demands.</p>
+        <p className="lede">How much responsible-use demand does this scenario create?</p>
         {demandScenarios.map((scenario) => (
-          <RatingField key={scenario.id} name={`${scenario.id}_rating`} title={scenario.title} prompt={scenario.prompt} {...props} />
+          <RatingField key={scenario.id} name={`${scenario.id}_rating`} title={scenario.title} prompt={scenario.prompt} showRatingLabels {...props} />
         ))}
+        <CommentField label="Can you provide a typical scenario in your classroom, not listed here?" name="custom_classroom_scenario" {...props} />
+        <RatingField
+          name="custom_classroom_scenario_rating"
+          title="Your scenario"
+          prompt="How much responsible-use demand does your classroom scenario create?"
+          showRatingLabels
+          {...props}
+        />
       </section>
     );
   }
@@ -393,12 +401,16 @@ function MultiChoiceField(props: FieldProps & { label: string; name: string; opt
   );
 }
 
-function RatingField(props: FieldProps & { name: string; title: string; prompt: string }) {
+function RatingField(props: FieldProps & { name: string; title: string; prompt: string; showRatingLabels?: boolean }) {
+  const labels = ["Very low", "Low", "Moderate", "High", "Very high"];
+  const unclearValue = "Unclear, I don't know";
+  const unclearReasonKey = `${props.name}_unclear_reason`;
+
   return (
     <fieldset className="field">
       <legend className="label">{props.title}</legend>
       <p className="hint">{props.prompt}</p>
-      <div className="choice-grid">
+      <div className={`choice-grid ${props.showRatingLabels ? "labeled" : ""}`}>
         {[1, 2, 3, 4, 5].map((rating) => (
           <label key={rating}>
             <input
@@ -406,12 +418,37 @@ function RatingField(props: FieldProps & { name: string; title: string; prompt: 
               name={props.name}
               value={rating}
               checked={props.values[props.name] === String(rating)}
-              onChange={(event) => props.onValue(props.name, event.target.value)}
+              onChange={(event) => {
+                props.onValue(props.name, event.target.value);
+                props.onValue(unclearReasonKey, "");
+              }}
             />
-            {rating}
+            {props.showRatingLabels ? `${rating}. ${labels[rating - 1]}` : rating}
           </label>
         ))}
+        <label>
+          <input
+            type="radio"
+            name={props.name}
+            value={unclearValue}
+            checked={props.values[props.name] === unclearValue}
+            onChange={(event) => props.onValue(props.name, event.target.value)}
+          />
+          {unclearValue}
+        </label>
       </div>
+      {props.values[props.name] === unclearValue ? (
+        <div className="field">
+          <label className="label" htmlFor={unclearReasonKey}>
+            Why is this unclear?
+          </label>
+          <textarea
+            id={unclearReasonKey}
+            value={props.values[unclearReasonKey] || ""}
+            onChange={(event) => props.onValue(unclearReasonKey, event.target.value)}
+          />
+        </div>
+      ) : null}
     </fieldset>
   );
 }
@@ -435,13 +472,19 @@ type FieldProps = {
 };
 
 function collectResponses(section: SectionId, values: Record<string, string>, comments: Record<string, string>) {
+  const demandRatingKeys = [...demandScenarios.map((scenario) => `${scenario.id}_rating`), "custom_classroom_scenario_rating"];
+
   const keysBySection: Record<SectionId, string[]> = {
     context: ["role", "role_other", "teaching_context", "teaching_context_other", "discipline", "discipline_other", "policy_context"],
-    demand: demandScenarios.map((scenario) => `${scenario.id}_rating`),
+    demand: [
+      ...demandRatingKeys.flatMap((key) => [key, `${key}_unclear_reason`]),
+      "custom_classroom_scenario"
+    ],
     classification: classificationScenarios.flatMap((scenario) => [
       `${scenario.id}_entry_timing`,
       `${scenario.id}_output_scope`,
       `${scenario.id}_confidence_rating`,
+      `${scenario.id}_confidence_rating_unclear_reason`,
       `${scenario.id}_comment`
     ]),
     governance: ["selected_safeguard", "safeguard_justification", "missing_configuration", "taxonomy_usefulness", "improvement_suggestion"]
