@@ -316,8 +316,8 @@ function ActiveSection(props: {
           <div className="panel stack" key={scenario.id}>
             <h2>{scenario.title}</h2>
             <p>{scenario.prompt}</p>
-            <OptionField label="AI entry timing" name={`${scenario.id}_entry_timing`} options={aiEntryTiming} {...props} />
-            <OptionField label="AI output scope" name={`${scenario.id}_output_scope`} options={aiOutputScope} {...props} />
+            <MultiChoiceField label="AI entry timing" name={`${scenario.id}_entry_timing`} options={aiEntryTiming} {...props} />
+            <MultiChoiceField label="AI output scope" name={`${scenario.id}_output_scope`} options={aiOutputScope} {...props} />
             <RatingField name={`${scenario.id}_confidence_rating`} title="Confidence" prompt="How confident are you in this classification?" {...props} />
             <CommentField label="Optional comment" name={`${scenario.id}_comment`} {...props} />
           </div>

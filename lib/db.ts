@@ -281,19 +281,33 @@ export function getDashboardData() {
     `)
     .all(state.collectionId) as Array<{ questionKey: string; value: string; count: number }>;
 
-  const categories = database
+  const categoryRows = database
     .prepare(`
-      SELECT question_key as questionKey, value, COUNT(*) as count
+      SELECT question_key as questionKey, value
       FROM responses
       WHERE collection_id = ? AND section IN ('context', 'classification', 'governance')
         AND question_key NOT LIKE '%comment'
         AND question_key NOT LIKE '%justification'
         AND question_key NOT LIKE '%suggestion'
         AND question_key NOT LIKE '%missing%'
-      GROUP BY question_key, value
-      ORDER BY question_key, count DESC
     `)
-    .all(state.collectionId) as Array<{ questionKey: string; value: string; count: number }>;
+    .all(state.collectionId) as Array<{ questionKey: string; value: string }>;
+  const categoryCounts = new Map<string, { questionKey: string; value: string; count: number }>();
+  for (const row of categoryRows) {
+    const values = row.value.includes("|") ? row.value.split("|").filter(Boolean) : [row.value];
+    for (const value of values) {
+      const key = `${row.questionKey}\u0000${value}`;
+      const current = categoryCounts.get(key);
+      if (current) {
+        current.count += 1;
+      } else {
+        categoryCounts.set(key, { questionKey: row.questionKey, value, count: 1 });
+      }
+    }
+  }
+  const categories = Array.from(categoryCounts.values()).sort(
+    (left, right) => left.questionKey.localeCompare(right.questionKey) || right.count - left.count || left.value.localeCompare(right.value)
+  );
 
   const customScenarios = database
     .prepare(`
