@@ -5,7 +5,10 @@ import { sectionOrder, type SectionId } from "@/lib/survey";
 
 export const dynamic = "force-dynamic";
 
-export function GET() {
+export function GET(request: NextRequest) {
+  const admin = requireAdmin(request);
+  if (!admin.ok) return NextResponse.json({ error: admin.error }, { status: 401 });
+
   return NextResponse.json(getSurveyState());
 }
 

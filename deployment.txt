@@ -1,0 +1,11 @@
+cd /var/www/saltise_survey
+git pull
+npm ci
+npm run build
+sudo systemctl restart saltise-survey
+
+
+If /var/www/saltise_survey is already owned by root, fix it once:
+sudo chown -R $USER:www-data /var/www/saltise_survey
+sudo chmod -R g+rw /var/www/saltise_survey
+

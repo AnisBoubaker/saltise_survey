@@ -30,9 +30,6 @@ export default function Home() {
             <Link className="button" href="/survey">
               Start
             </Link>
-            <Link className="button secondary" href="/live">
-              View live results
-            </Link>
           </div>
         </section>
       </div>

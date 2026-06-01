@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   aiEntryTiming,
   aiOutputScope,
@@ -37,6 +37,8 @@ export default function SurveyPage() {
   const [message, setMessage] = useState("");
   const [pseudonymLinked, setPseudonymLinked] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const lastAnswerableSection = useRef<SectionId | null>(null);
+  const isManualSubmit = useRef(false);
 
   useEffect(() => {
     const storedId = localStorage.getItem("surveyParticipantId") || makeUuid();
@@ -104,6 +106,18 @@ export default function SurveyPage() {
       ? state.activeSection
       : null;
 
+  useEffect(() => {
+    const previous = lastAnswerableSection.current;
+    if (previous && previous !== "context" && previous !== answerableSection && !completedSections.includes(previous)) {
+      if (isManualSubmit.current) {
+        isManualSubmit.current = false;
+      } else {
+        void submitSection(previous, true);
+      }
+    }
+    lastAnswerableSection.current = answerableSection;
+  }, [answerableSection, completedSections]);
+
   function updateValue(questionKey: string, value: string) {
     setSaved((current) => ({ ...current, [questionKey]: value }));
   }
@@ -112,33 +126,47 @@ export default function SurveyPage() {
     setComments((current) => ({ ...current, [questionKey]: value }));
   }
 
-  async function savePseudonym() {
+  async function continueWithPseudonym() {
     if (!pseudonym.trim()) {
       setMessage("Enter a pseudonym before continuing.");
       setPseudonymLinked(false);
       return;
     }
 
-    localStorage.setItem("surveyPseudonym", pseudonym);
-    await register(participantId || makeUuid(), pseudonym);
-    setMessage("Pseudonym linked. You can now answer the context questions.");
+    const normalizedPseudonym = pseudonym.trim();
+    localStorage.setItem("surveyPseudonym", normalizedPseudonym);
+    setPseudonym(normalizedPseudonym);
+    await register(participantId || makeUuid(), normalizedPseudonym);
+    setMessage("");
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!answerableSection) return;
+    isManualSubmit.current = true;
+    await submitSection(answerableSection, false);
+  }
+
+  async function submitSection(section: SectionId, automatic: boolean) {
     if (!pseudonym.trim() || !pseudonymLinked) {
       setMessage("Enter and link your pseudonym before saving answers.");
       return;
     }
+    if (!automatic) {
+      const validationError = validateSection(section, saved);
+      if (validationError) {
+        setMessage(validationError);
+        return;
+      }
+    }
     setIsSaving(true);
-    setMessage("");
+    if (!automatic) setMessage("");
 
-    const responses = collectResponses(answerableSection, saved, comments);
+    const responses = collectResponses(section, saved, comments);
     const response = await fetch("/api/responses", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ participantId, pseudonym, section: answerableSection, responses })
+      body: JSON.stringify({ participantId, pseudonym, section, responses })
     });
     const data = await response.json();
     setIsSaving(false);
@@ -152,11 +180,17 @@ export default function SurveyPage() {
       localStorage.setItem("surveyParticipantId", data.participantId);
       setParticipantId(data.participantId);
     }
-    setCompletedSections((current) => (current.includes(answerableSection) ? current : [...current, answerableSection]));
-    if (answerableSection === "context") {
+    setCompletedSections((current) => (current.includes(section) ? current : [...current, section]));
+    if (section === "context") {
       setIsEditingContext(false);
     }
-    setMessage(answerableSection === "context" ? "Context saved. Please wait for the presenter to open the next section." : "Saved. Please wait for the next section.");
+    setMessage(
+      automatic
+        ? "The presenter closed this section. Your current answers were submitted."
+        : section === "context"
+          ? "Context saved. Please wait for the presenter to open the next section."
+          : "Saved. Please wait for the next section."
+    );
   }
 
   return (
@@ -195,14 +229,15 @@ export default function SurveyPage() {
               <p className="hint">Required. Use the same pseudonym if you return on another device. It is stored only as a hash.</p>
             </div>
             <div className="actions">
-              <button className="secondary" type="button" onClick={savePseudonym}>
-                Link pseudonym
+              <button type="button" onClick={continueWithPseudonym}>
+                Next
               </button>
             </div>
           </>
         )}
       </section>
 
+      {pseudonymLinked ? (
       <form className="stack" onSubmit={submit}>
         {answerableSection ? (
           <ActiveSection
@@ -233,13 +268,14 @@ export default function SurveyPage() {
         {message ? <p className="status">{message}</p> : null}
 
         {answerableSection ? (
-          <div className="actions">
+          <div className="actions survey-actions">
             <button type="submit" disabled={isSaving}>
               {isSaving ? "Saving..." : "Next"}
             </button>
           </div>
         ) : null}
       </form>
+      ) : null}
     </main>
   );
 }
@@ -269,7 +305,7 @@ function ActiveSection(props: {
         <h1 className="page-title">Responsible-use demand</h1>
         <p className="lede">How much responsible-use demand does this scenario create?</p>
         {demandScenarios.map((scenario) => (
-          <RatingField key={scenario.id} name={`${scenario.id}_rating`} title={scenario.title} prompt={scenario.prompt} showRatingLabels {...props} />
+          <RatingField key={scenario.id} name={`${scenario.id}_rating`} title={scenario.title} prompt={scenario.prompt} showRatingLabels required {...props} />
         ))}
         <CommentField label="Can you provide a typical scenario in your classroom, not listed here?" name="custom_classroom_scenario" {...props} />
         <RatingField
@@ -401,7 +437,7 @@ function MultiChoiceField(props: FieldProps & { label: string; name: string; opt
   );
 }
 
-function RatingField(props: FieldProps & { name: string; title: string; prompt: string; showRatingLabels?: boolean }) {
+function RatingField(props: FieldProps & { name: string; title: string; prompt: string; showRatingLabels?: boolean; required?: boolean }) {
   const labels = ["Very low", "Low", "Moderate", "High", "Very high"];
   const unclearValue = "Unclear, I don't know";
   const unclearReasonKey = `${props.name}_unclear_reason`;
@@ -409,6 +445,7 @@ function RatingField(props: FieldProps & { name: string; title: string; prompt: 
   return (
     <fieldset className="field">
       <legend className="label">{props.title}</legend>
+      {props.required ? <p className="required-note">Required</p> : null}
       <p className="hint">{props.prompt}</p>
       <div className={`choice-grid ${props.showRatingLabels ? "labeled" : ""}`}>
         {[1, 2, 3, 4, 5].map((rating) => (
@@ -495,4 +532,15 @@ function collectResponses(section: SectionId, values: Record<string, string>, co
     value: values[questionKey] || comments[questionKey] || "",
     comment: comments[questionKey] && values[questionKey] ? comments[questionKey] : null
   }));
+}
+
+function validateSection(section: SectionId, values: Record<string, string>) {
+  if (section !== "demand") return null;
+
+  const missingScenario = demandScenarios.find((scenario) => !values[`${scenario.id}_rating`]);
+  if (missingScenario) {
+    return "Please answer all five required responsible-use demand ratings before continuing.";
+  }
+
+  return null;
 }

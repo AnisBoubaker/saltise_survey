@@ -81,18 +81,18 @@ export const demandScenarios = [
 export const classificationScenarios = [
   {
     id: "lab_autocomplete",
-    title: "In-lab assistant",
-    prompt: "Students work on a lab while an AI tool gives inline hints, code completions, and short explanations."
+    title: "Debugging Coach",
+    prompt: "The AI gives the student debugger messages explanations and hints on how to fix the problem."
   },
   {
     id: "critique_ai_answer",
-    title: "Critique an AI answer",
-    prompt: "Students receive an AI-generated solution and must identify defects, assumptions, and improvements."
+    title: "AI as a pair programmer",
+    prompt: "GenAI acts as a lightweight collaborator during brainstorming, coding, debugging, and refactoring."
   },
   {
     id: "post_submission_feedback",
-    title: "Post-submission feedback",
-    prompt: "After submitting an assignment, students receive AI feedback to guide reflection and revision."
+    title: "AI as a reviewer",
+    prompt: "Students produce an attempt, then consult AI about their work that acts as a reviewer."
   }
 ];
 

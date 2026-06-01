@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
   }
 
   const state = getSurveyState();
-  if (body.section !== "context" && (!state.acceptingResponses || state.activeSection !== body.section)) {
+  if (body.section !== "context" && state.activeSection !== body.section) {
     return NextResponse.json({ error: "This section is not currently accepting responses." }, { status: 409 });
   }
 

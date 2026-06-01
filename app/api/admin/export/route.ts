@@ -8,8 +8,21 @@ export function GET(request: NextRequest) {
   const admin = requireAdmin(request);
   if (!admin.ok) return NextResponse.json({ error: admin.error }, { status: 401 });
 
-  const rows = getCsvRows();
+  const collectionIdParam = request.nextUrl.searchParams.get("collectionId");
+  let collectionId: number | undefined;
+  if (collectionIdParam) {
+    const parsedCollectionId = Number(collectionIdParam);
+    if (!Number.isInteger(parsedCollectionId) || parsedCollectionId < 1) {
+      return NextResponse.json({ error: "Invalid collection ID." }, { status: 400 });
+    }
+    collectionId = parsedCollectionId;
+  }
+
+  const rows = getCsvRows(collectionId);
   const headers = [
+    "collection_id",
+    "collection_name",
+    "collection_created_at",
     "participant_id",
     "has_pseudonym",
     "participant_created_at",
@@ -25,7 +38,7 @@ export function GET(request: NextRequest) {
   return new NextResponse(csv, {
     headers: {
       "content-type": "text/csv; charset=utf-8",
-      "content-disposition": `attachment; filename="genai-survey-export-${new Date().toISOString().slice(0, 10)}.csv"`
+      "content-disposition": `attachment; filename="genai-survey-${collectionId ? `collection-${collectionId}` : "all"}-${new Date().toISOString().slice(0, 10)}.csv"`
     }
   });
 }
