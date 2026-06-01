@@ -33,7 +33,6 @@ export default function SurveyPage() {
   const [saved, setSaved] = useState<Record<string, string>>({});
   const [comments, setComments] = useState<Record<string, string>>({});
   const [completedSections, setCompletedSections] = useState<SectionId[]>([]);
-  const [isEditingContext, setIsEditingContext] = useState(false);
   const [message, setMessage] = useState("");
   const [pseudonymLinked, setPseudonymLinked] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -100,7 +99,7 @@ export default function SurveyPage() {
   );
   const contextComplete = completedSections.includes("context");
   const isPresenterSectionOpen = Boolean(state.activeSection && state.acceptingResponses);
-  const answerableSection: SectionId | null = !contextComplete || isEditingContext
+  const answerableSection: SectionId | null = !contextComplete
     ? "context"
     : state.activeSection && state.acceptingResponses && !completedSections.includes(state.activeSection)
       ? state.activeSection
@@ -181,9 +180,6 @@ export default function SurveyPage() {
       setParticipantId(data.participantId);
     }
     setCompletedSections((current) => (current.includes(section) ? current : [...current, section]));
-    if (section === "context") {
-      setIsEditingContext(false);
-    }
     setMessage(
       automatic
         ? "The presenter closed this section. Your current answers were submitted."
@@ -255,13 +251,6 @@ export default function SurveyPage() {
                 ? "Your response for the open section is saved. Please wait for the presenter to open the next section."
                 : "The presenter has not opened the next section yet. This page checks automatically."}
             </p>
-            {contextComplete ? (
-              <div className="actions">
-                <button className="secondary" type="button" onClick={() => setIsEditingContext(true)}>
-                  Edit context
-                </button>
-              </div>
-            ) : null}
           </section>
         )}
 
